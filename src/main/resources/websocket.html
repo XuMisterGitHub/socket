@@ -193,13 +193,13 @@
     $("#send").click(function () {
         var socketEvent = $("#socketEvent").val();//自定义的事件名称
         var content = $("#content").val();//发送的内容
-        socket.emit(socketEvent, content, function (data1, data2) {
-            console.log("ack1:" + data1);
-            console.log("ack2:" + data2);
-
-
+        var msg = {
+            "userId": 2023,
+            "roomId": "20231226",
+            "content": content
+        }
+        socket.emit(socketEvent, msg, function (data1, data2) {
             serverOutput('<span class="ask-msg"><font color="blue">' + getNowTime() + '&nbsp;</font>' + '服务端响应' + data1 + ' ' + data2 + ' </span>');
-
         });
     })
 

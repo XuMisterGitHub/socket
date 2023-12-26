@@ -1,14 +1,18 @@
 package com.bingo.socket.core.handler;
 
+import com.bingo.socket.core.message.MessageDataModel;
 import com.corundumstudio.socketio.AckRequest;
 import com.corundumstudio.socketio.SocketIOClient;
 import com.corundumstudio.socketio.SocketIOServer;
 import com.corundumstudio.socketio.annotation.OnEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -23,15 +27,22 @@ public class UserHandler {
     @Autowired
     private SocketIOServer socketIOServer;
 
+    @Value("${socketio.defaultRoomId}")
+    private String defaultRoomId;
+
     /**
      * 客户端登录事件
      */
     @OnEvent("login")
-    public void userLogin(SocketIOClient client, String data, AckRequest ackRequest) throws JsonProcessingException {
-        client.joinRoom(data);
+    public void userLogin(SocketIOClient client, MessageDataModel data, AckRequest ackRequest) throws JsonProcessingException {
+        //默认房间ID为大群
+        if (Objects.nonNull(data) && StringUtils.isEmpty(data.getRoomId())) {
+            data.setRoomId(defaultRoomId);
+        }
+        client.joinRoom(data.getRoomId());
         log.info("===userLogin===data:{}", data);
         if (ackRequest.isAckRequested()) {
-            ackRequest.sendAckData("userLogin ask", data);
+            ackRequest.sendAckData("userLogin ask", data.getContent());
         }
     }
 
@@ -39,11 +50,15 @@ public class UserHandler {
      * 客户端登出事件
      */
     @OnEvent("logout")
-    public void userLogout(SocketIOClient client, String data, AckRequest ackRequest) throws JsonProcessingException {
-        client.leaveRoom(data);
+    public void userLogout(SocketIOClient client, MessageDataModel data, AckRequest ackRequest) throws JsonProcessingException {
+        //默认房间ID为大群
+        if (Objects.nonNull(data) && StringUtils.isEmpty(data.getRoomId())) {
+            data.setRoomId(defaultRoomId);
+        }
+        client.leaveRoom(data.getRoomId());
         log.info("===userLogout===data:{}", data);
         if (ackRequest.isAckRequested()) {
-            ackRequest.sendAckData("userLogout ask", data);
+            ackRequest.sendAckData("userLogout ask", data.getContent());
         }
     }
 
@@ -51,16 +66,16 @@ public class UserHandler {
      * 接收客户端传的心跳包
      */
     @OnEvent("heartbeat")
-    public void heartbeat(SocketIOClient client, String data, AckRequest ackRequest) throws JsonProcessingException {
+    public void heartbeat(SocketIOClient client, MessageDataModel data, AckRequest ackRequest) throws JsonProcessingException {
         log.info("===heartbeat===data:{}", data);
         if (ackRequest.isAckRequested()) {
-            ackRequest.sendAckData("heartbeat ask", data);
+            ackRequest.sendAckData("heartbeat ask", data.getContent());
         }
     }
 
 
     @OnEvent("sendRoomMessage")
-    public void sendRoomMessage(SocketIOClient client, String data, AckRequest ackRequest) throws JsonProcessingException {
+    public void sendRoomMessage(SocketIOClient client, MessageDataModel data, AckRequest ackRequest) throws JsonProcessingException {
 
         log.info("===sendRoomMessage===data:{}", data);
 
@@ -84,7 +99,7 @@ public class UserHandler {
     }
 
     @OnEvent("sendNamespaceMessage")
-    public void sendNamespaceMessage(SocketIOClient client, String data, AckRequest ackRequest) throws JsonProcessingException {
+    public void sendNamespaceMessage(SocketIOClient client, MessageDataModel data, AckRequest ackRequest) throws JsonProcessingException {
 
         socketIOServer.getNamespace("/user").getBroadcastOperations().sendEvent("message", client, data);
 

@@ -5,6 +5,7 @@ import com.corundumstudio.socketio.annotation.OnConnect;
 import com.corundumstudio.socketio.annotation.OnDisconnect;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -19,6 +20,10 @@ public class SocketIOServerHandler {
 
     @Autowired
     private ClientCache clientCache;
+    @Autowired
+    private UserStatusCache userStatusCache;
+    @Autowired
+    private SocketTemplate socketTemplate;
 
     /**
      * 建立连接
@@ -33,6 +38,10 @@ public class SocketIOServerHandler {
         //因为我定义用户的参数为userId，你也可以定义其他名称
         //客户端请求 http://localhost:9999/user?userId=12345
         String userId = client.getHandshakeData().getSingleUrlParam("userId");
+        if (StringUtils.isEmpty(userId)) {
+            log.warn("===SocketIOServerHandler connectFail===");
+            return;
+        }
 
         //同一个页面sessionid一样的
         UUID sessionId = client.getSessionId();
@@ -40,7 +49,10 @@ public class SocketIOServerHandler {
         //保存用户的信息在缓存里面
         clientCache.saveClient(userId, sessionId, client);
 
-        log.info("===SocketIOServerHandler connect===userId:{},sessionId:{}", userId, sessionId);
+        //设置用户的状态-在线
+        socketTemplate.setUserStatus(userId, UserStatusEnum.ESTABLISH_CONNECTION);
+
+        log.info("===SocketIOServerHandler connectSuccess===userId:{},sessionId:{}", userId, sessionId);
 
 
     }
@@ -62,6 +74,8 @@ public class SocketIOServerHandler {
         //clientCache.deleteUserCacheByUserId(userId);
         //只会删除用户某个页面会话的缓存，不会删除该用户不同会话的缓存，比如：用户同时打开了谷歌和QQ浏览器，当你关闭谷歌时候，只会删除该用户谷歌的缓存会话
         clientCache.deleteSessionClientByUserId(userId, sessionId);
+        //更新用户在线的状态
+        userStatusCache.deleteUser(userId, UserStatusEnum.DISCONNECT.getStatus());
 
         log.info("===SocketIOServerHandler disconnect===userId:{},sessionId:{}", userId, sessionId);
     }

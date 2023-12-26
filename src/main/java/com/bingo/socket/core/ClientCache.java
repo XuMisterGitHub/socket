@@ -8,7 +8,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 这是存储用户的缓存信息
+ * 用户的socket信息
  */
 @Component
 public class ClientCache {
