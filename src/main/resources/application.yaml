@@ -1,5 +1,5 @@
-#自定义socketIO配置
-socketIO:
+#自定义socketio配置
+socketio:
   # socketIO请求地址
   host: 127.0.0.1
   # socketIO端口
