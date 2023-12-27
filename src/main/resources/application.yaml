@@ -24,3 +24,12 @@ socketio:
   namespaces: /user
   #业务大群房间ID
   defaultRoomId: 2023
+
+# 定时任务
+schedule:
+  # 心跳
+  heartbeat:
+    # 频率s
+    delay: 10
+    # 批量数量
+    batchSize: 100
