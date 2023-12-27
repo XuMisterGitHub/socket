@@ -1,4 +1,4 @@
-package com.bingo.socket.core;
+package com.bingo.socket.core.cache;
 
 import com.corundumstudio.socketio.SocketIOClient;
 import org.springframework.stereotype.Component;
@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 用户的socket信息
  */
 @Component
-public class ClientCache {
+public class SocketClientCache {
 
     //用于存储用户的socket缓存信息
     private static ConcurrentHashMap<String, HashMap<UUID, SocketIOClient>> concurrentHashMap = new ConcurrentHashMap<>();

@@ -1,4 +1,4 @@
-package com.bingo.socket.core;
+package com.bingo.socket.enums;
 
 public enum UserStatusEnum {
 

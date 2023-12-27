@@ -1,8 +1,10 @@
-package com.bingo.socket.core;
+package com.bingo.socket.core.cache;
 
+import com.bingo.socket.enums.UserStatusEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -75,4 +77,17 @@ public class UserStatusCache {
 
     }
 
+    public Map<String, Integer> getOnlineUsers() {
+        if (onlineUserMap == null) {
+            onlineUserMap = new ConcurrentHashMap<>();
+        }
+        return onlineUserMap;
+    }
+
+    public Integer getOnlineUser(String userId) {
+        if (!onlineUserMap.isEmpty() && onlineUserMap.contains(userId)) {
+            return onlineUserMap.get(userId);
+        }
+        return UserStatusEnum.DISCONNECT.getStatus();
+    }
 }

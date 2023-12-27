@@ -1,3 +1,6 @@
+server:
+  port: 8000
+
 #自定义socketio配置
 socketio:
   # socketIO请求地址
@@ -33,3 +36,9 @@ schedule:
     delay: 10
     # 批量数量
     batchSize: 100
+
+theadPool:
+  corePoolSize: 8
+  maximumPoolSize: 100
+  keepAliveTime: 60
+  capacity: 50

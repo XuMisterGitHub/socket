@@ -1,11 +1,15 @@
 package com.bingo.socket.core;
 
+import com.bingo.socket.core.cache.SocketClientCache;
+import com.bingo.socket.core.cache.UserStatusCache;
+import com.bingo.socket.enums.UserStatusEnum;
 import com.corundumstudio.socketio.SocketIOClient;
 import com.corundumstudio.socketio.SocketIOServer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -21,7 +25,7 @@ public class SocketTemplate {
     @Autowired
     private SocketIOServer socketIOServer;
     @Autowired
-    private ClientCache clientCache;
+    private SocketClientCache socketClientCache;
     @Autowired
     private UserStatusCache userStatusCache;
 
@@ -29,7 +33,7 @@ public class SocketTemplate {
      * 给某个命名空间下的某个用户发消息
      */
     public void sendMessageOne(String userId, String namespace) throws JsonProcessingException {
-        Map<UUID, SocketIOClient> userClient = clientCache.getUserClient(userId);
+        Map<UUID, SocketIOClient> userClient = socketClientCache.getUserClient(userId);
         for (UUID sessionId : userClient.keySet()) {
             socketIOServer.getNamespace("/" + namespace).getClient(sessionId).sendEvent("message", "这是点对点发送");
         }
@@ -63,6 +67,29 @@ public class SocketTemplate {
                 break;
             default:
                 break;
+        }
+        return false;
+    }
+
+    /**
+     * 获取所有在线用户
+     */
+    public Map<String, Integer> getOnlineUsers() {
+        return userStatusCache.getOnlineUsers();
+    }
+
+    public Integer getOnlineUser(String userId) {
+        return userStatusCache.getOnlineUser(userId);
+    }
+
+    public boolean sendMsgToUser(String toUserId, String content) {
+        Map<UUID, SocketIOClient> userClientMap = socketClientCache.getUserClient(toUserId);
+        if (!userClientMap.isEmpty()) {
+            for (UUID sessionId : userClientMap.keySet()) {
+                SocketIOClient socketIOClient = userClientMap.get(sessionId);
+                socketIOServer.getNamespace("/user").getBroadcastOperations().sendEvent("message", socketIOClient, content);
+            }
+            return true;
         }
         return false;
     }
