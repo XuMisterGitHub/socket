@@ -40,6 +40,12 @@ public class SocketIOConfig {
     @Value("${socketio.namespaces}")
     private String[] namespaces;
 
+    @Value("${schedule.heartbeat.delay}")
+    public int scheduleHeartbeatDelay;
+
+    @Value("${schedule.heartbeat.batchSize}")
+    public int scheduleHeartbeatBatchSize;
+
     @Bean
     public SocketIOServer socketIOServer() {
         SocketConfig socketConfig = new SocketConfig();
