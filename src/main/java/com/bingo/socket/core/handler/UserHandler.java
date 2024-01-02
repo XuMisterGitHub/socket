@@ -68,6 +68,9 @@ public class UserHandler {
     @OnEvent("heartbeat")
     public void heartbeat(SocketIOClient client, MessageDataModel data, AckRequest ackRequest) throws JsonProcessingException {
         log.info("===heartbeat===data:{}", data);
+
+        //更新用户收到的心跳包失败次数重置为0
+
         if (ackRequest.isAckRequested()) {
             ackRequest.sendAckData("heartbeat ask", data.getContent());
         }

@@ -1,15 +1,16 @@
 package com.bingo.socket.core.cache;
 
 import com.corundumstudio.socketio.SocketIOClient;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 用户的socket信息
  */
+@Slf4j
 @Component
 public class SocketClientCache {
 
@@ -44,5 +45,41 @@ public class SocketClientCache {
         concurrentHashMap.remove(userId);
 
     }
+
+    /**
+     * 建立连接的检测
+     */
+    public void preCheckConnect(String userId) {
+        HashMap<UUID, SocketIOClient> userClientMap = getUserClient(userId);
+        if (!userClientMap.isEmpty()) {
+            Iterator<Map.Entry<UUID, SocketIOClient>> iterator = userClientMap.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<UUID, SocketIOClient> entry = iterator.next();
+                SocketIOClient socketIOClient = entry.getValue();
+                UUID sessionId = entry.getKey();
+                if (Objects.nonNull(socketIOClient)) {
+                    log.info("===preCheckConnect===userId:{},sessionId:{}", userId, sessionId);
+
+                    //主动关闭连接
+                    socketIOClient.disconnect();
+                    //删除缓存
+                    iterator.remove();
+                }
+            }
+        }
+    }
+
+    /**
+     * 断开连接
+     */
+    public void disconnectClient(String userId, UUID sessionId, SocketIOClient socketIOClient) {
+        HashMap<UUID, SocketIOClient> userClientMap = getUserClient(userId);
+        if (!userClientMap.isEmpty()) {
+            log.info("===disconnectClient===userId:{},sessionId:{}", userId, sessionId);
+            userClientMap.remove(sessionId);
+            socketIOClient.disconnect();
+        }
+    }
+
 
 }

@@ -51,12 +51,11 @@ public class SocketServiceImpl implements ISocketService {
     @Override
     public Boolean sendMsgOnlineOneUser(SendMsgParam sendMsgParam) {
         try {
-            socketTemplate.sendMsgToUser(sendMsgParam.getToUserId(), sendMsgParam.toString());
+            return socketTemplate.sendMsgOnlineOneUser(sendMsgParam.getToUserId(), sendMsgParam.getContent());
         } catch (Exception e) {
             log.error("===sendMsgToUserError===toUserId:" + sendMsgParam.getToUserId() + ",content:" + sendMsgParam.getContent());
             return false;
         }
-        return true;
     }
 
     @Override

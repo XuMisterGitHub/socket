@@ -1,7 +1,5 @@
 package com.bingo.socket.core;
 
-import com.bingo.socket.core.cache.SocketClientCache;
-import com.bingo.socket.core.cache.UserStatusCache;
 import com.bingo.socket.enums.UserStatusEnum;
 import com.corundumstudio.socketio.SocketIOClient;
 import com.corundumstudio.socketio.annotation.OnConnect;
@@ -22,10 +20,6 @@ import java.util.UUID;
 public class SocketIOServerHandler {
 
     @Autowired
-    private SocketClientCache socketClientCache;
-    @Autowired
-    private UserStatusCache userStatusCache;
-    @Autowired
     private SocketTemplate socketTemplate;
 
     /**
@@ -35,29 +29,18 @@ public class SocketIOServerHandler {
      */
     @OnConnect
     public void onConnect(SocketIOClient client) {
-
-        //定义用户的参数为userId
-        //下面两种是加了命名空间的，他会请求对应命名空间的方法（就类似你进了不同的房间玩游戏）
-        //因为我定义用户的参数为userId，你也可以定义其他名称
-        //客户端请求 http://localhost:9999/user?userId=12345
+        //客户端请求 http://localhost:端口号/命名空间?userId=12345
         String userId = client.getHandshakeData().getSingleUrlParam("userId");
         if (StringUtils.isEmpty(userId)) {
             log.warn("===SocketIOServerHandler connectFail===");
             return;
         }
-
-        //同一个页面sessionid一样的
+        //同一个页面session一样的
         UUID sessionId = client.getSessionId();
+        //用户建立连接
+        boolean setUserStatus = socketTemplate.setUserStatus(userId, UserStatusEnum.ESTABLISH_CONNECTION, client, sessionId);
 
-        //保存用户的信息在缓存里面
-        socketClientCache.saveClient(userId, sessionId, client);
-
-        //设置用户的状态-在线
-        socketTemplate.setUserStatus(userId, UserStatusEnum.ESTABLISH_CONNECTION);
-
-        log.info("===SocketIOServerHandler connectSuccess===userId:{},sessionId:{}", userId, sessionId);
-
-
+        log.info("===SocketIOServerHandler connectSuccess===userId:{},sessionId:{},result:{}", userId, sessionId, setUserStatus);
     }
 
     /**
@@ -67,20 +50,11 @@ public class SocketIOServerHandler {
      */
     @OnDisconnect
     public void onDisconnect(SocketIOClient client) {
-
-        //因为我定义用户的参数为userId，你也可以定义其他名称
         String userId = client.getHandshakeData().getSingleUrlParam("userId");
-
-        //sessionId,页面唯一标识
         UUID sessionId = client.getSessionId();
+        boolean setUserStatus = socketTemplate.setUserStatus(userId, UserStatusEnum.DISCONNECT, client, sessionId);
 
-        //clientCache.deleteUserCacheByUserId(userId);
-        //只会删除用户某个页面会话的缓存，不会删除该用户不同会话的缓存，比如：用户同时打开了谷歌和QQ浏览器，当你关闭谷歌时候，只会删除该用户谷歌的缓存会话
-        socketClientCache.deleteSessionClientByUserId(userId, sessionId);
-        //更新用户在线的状态
-        userStatusCache.deleteUser(userId, UserStatusEnum.DISCONNECT.getStatus());
-
-        log.info("===SocketIOServerHandler disconnect===userId:{},sessionId:{}", userId, sessionId);
+        log.info("===SocketIOServerHandler disconnect===userId:{},sessionId:{},result:{}", userId, sessionId, setUserStatus);
     }
 
 

@@ -1,10 +1,12 @@
 package com.bingo.socket.core.cache;
 
 import com.bingo.socket.enums.UserStatusEnum;
+import com.corundumstudio.socketio.SocketIOClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -47,14 +49,17 @@ public class UserStatusCache {
     /**
      * 断开连接
      */
-    public void disconnect(String userId, Integer status) {
-        log.info("===disconnect===userId:{}", userId);
+    public void disconnect(String userId, Integer status, SocketIOClient socketIOClient, UUID sessionId) {
+        log.info("===disconnect===userId:{},sessionId:{}", userId, sessionId);
 
         onlineUserMap.remove(userId);
-        //同步到缓存
 
-        //同步上传日志
+        //同步用户在线状态
 
+        //保存会话记录
+
+        //断开连接
+        socketIOClient.disconnect();
     }
 
     /**

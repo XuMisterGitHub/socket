@@ -5,11 +5,10 @@ import com.bingo.socket.core.cache.UserStatusCache;
 import com.bingo.socket.enums.UserStatusEnum;
 import com.corundumstudio.socketio.SocketIOClient;
 import com.corundumstudio.socketio.SocketIOServer;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -19,6 +18,7 @@ import java.util.UUID;
  * Author: xbb
  * Date: 2023/12/25
  */
+@Slf4j
 @Component
 public class SocketTemplate {
 
@@ -30,19 +30,9 @@ public class SocketTemplate {
     private UserStatusCache userStatusCache;
 
     /**
-     * 给某个命名空间下的某个用户发消息
-     */
-    public void sendMessageOne(String userId, String namespace) throws JsonProcessingException {
-        Map<UUID, SocketIOClient> userClient = socketClientCache.getUserClient(userId);
-        for (UUID sessionId : userClient.keySet()) {
-            socketIOServer.getNamespace("/" + namespace).getClient(sessionId).sendEvent("message", "这是点对点发送");
-        }
-    }
-
-    /**
      * 设置在线用户
      */
-    public boolean setUserStatus(String userId, UserStatusEnum userStatusEnum) {
+    public boolean setUserStatus(String userId, UserStatusEnum userStatusEnum, SocketIOClient socketIOClient, UUID sessionId) {
 
         if (Objects.isNull(userStatusEnum)) {
             return false;
@@ -50,7 +40,11 @@ public class SocketTemplate {
 
         switch (userStatusEnum) {
             case ESTABLISH_CONNECTION:
+                //检测用户是否有其他连接
+                socketClientCache.preCheckConnect(userId);
                 //建立连接
+                socketClientCache.saveClient(userId, sessionId, socketIOClient);
+                //设置用户的状态-在线
                 userStatusCache.establishConnection(userId, userStatusEnum.getStatus());
                 break;
             case HEARTBEAT_CONNECTION:
@@ -59,7 +53,8 @@ public class SocketTemplate {
                 break;
             case DISCONNECT:
                 //断开连接
-                userStatusCache.disconnect(userId, userStatusEnum.getStatus());
+                socketClientCache.disconnectClient(userId, sessionId, socketIOClient);
+                userStatusCache.disconnect(userId, userStatusEnum.getStatus(), socketIOClient, sessionId);
                 break;
             case HEARTBEAT_TIMEOUT:
                 //心跳超时
@@ -82,12 +77,43 @@ public class SocketTemplate {
         return userStatusCache.getOnlineUser(userId);
     }
 
-    public boolean sendMsgToUser(String toUserId, String content) {
+    /**
+     * 单发消息
+     */
+    public boolean sendMsgOnlineOneUser(String toUserId, String content) {
         Map<UUID, SocketIOClient> userClientMap = socketClientCache.getUserClient(toUserId);
         if (!userClientMap.isEmpty()) {
             for (UUID sessionId : userClientMap.keySet()) {
-                SocketIOClient socketIOClient = userClientMap.get(sessionId);
-                socketIOServer.getNamespace("/user").getBroadcastOperations().sendEvent("message", socketIOClient, content);
+                try {
+                    SocketIOClient socketIOClient = userClientMap.get(sessionId);
+                    log.info("==sendMsgOnlineOneUser===sessionId:{},content:{}", sessionId, content);
+
+                    //单发,event自定义为message
+                    socketIOClient.sendEvent("message", content);
+                } catch (Exception e) {
+                    log.error("==sendMsgOnlineOneUserError===sessionId" + sessionId + ",content" + content + "===e:" + e);
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 广播消息
+     */
+    public boolean sendMsgBroadcast(String toUserId, String content) {
+        Map<UUID, SocketIOClient> userClientMap = socketClientCache.getUserClient(toUserId);
+        if (!userClientMap.isEmpty()) {
+            for (UUID sessionId : userClientMap.keySet()) {
+                try {
+                    log.info("==sendMsgBroadcast===sessionId:{},content:{}", sessionId, content);
+
+                    //广播，event自定义为message
+                    socketIOServer.getBroadcastOperations().sendEvent("message", content);
+                } catch (Exception e) {
+                    log.error("==sendMsgBroadcastError===sessionId" + sessionId + ",content" + content + "===e:" + e);
+                }
             }
             return true;
         }
